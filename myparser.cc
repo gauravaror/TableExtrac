@@ -54,12 +54,12 @@ void MySaxParser::split(const string& s, char c,
 
 void MySaxParser::on_start_document()
 {
-  std::cout << "on_start_document()" << std::endl;
+//  std::cout << "on_start_document()" << std::endl;
 }
 
 void MySaxParser::on_end_document()
 {
-  std::cout << "on_end_document()" << std::endl;
+ // std::cout << "on_end_document()" << std::endl;
 }
 
 void MySaxParser::on_start_element(const Glib::ustring& name,
@@ -97,7 +97,7 @@ void MySaxParser::on_start_element(const Glib::ustring& name,
 
     //std::cout << "attribute  " <<left_<<"  "<< top << "  "<< right_ << "  "<<bottom << std::endl;
     if(attributes[0].value.compare("ocr_line") == 0) {
-      std::cout<<std::endl;
+      //std::cout<<std::endl;
       line_left = left_;
       line_bottom = bottom;
       line_right = right_;

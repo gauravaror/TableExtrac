@@ -91,20 +91,27 @@ main(int argc, char* argv[])
   // Parse the entire document in one go:
   try
   {
+    // Elements to store Texts Lines and Table Blocks.
     v =  new std::vector<TextElement>();
     lines =  new std::vector<Line>();
     tblock =  new std::vector<TableBlock>;
+
+    //Invoking parser to get text elements from hocr file.
     MySaxParser * parser = new MySaxParser(v);
     parser->set_substitute_entities(true); //
     parser->parse_file(filepath);
-    std::cout << v->size() << std::endl;
+
+    //Sorting the Text Element in order of top value
     sort(v->begin(),v->end(),top_compare);
     std::vector<TextElement>::iterator it = v->begin();
+
+
+    //Populating Lines with elements which belong to particular line
     Line * curr_line = new Line();
     populate_line_(curr_line,&(*it));
     lines->push_back(*curr_line);
     ++it;
-    std::cout <<curr_line->top<<" curr_line ";
+   // std::cout <<curr_line->top<<" curr_line ";
     for(; it != v->end(); ++it) {
       if (same_line(curr_line,&(*it)))  {
         add_element_line(curr_line,&(*it));
@@ -117,10 +124,12 @@ main(int argc, char* argv[])
         lines->push_back(*curr_line);
       }
     }   
+
+    // Find the block which can be probable tables.
     bool multi_modus = false;        
     //std::cout <<lines->size()<<" lines size ";
     for(unsigned int i = 0; i < lines->size();i++) {
-      std::cout<<endl;
+     // std::cout<<endl;
       Line curr = lines->at(i);
       sort(curr.texts->begin(),curr.texts->end(),left_comparator);
       if (curr.texts->size() > 1) {
@@ -156,20 +165,20 @@ main(int argc, char* argv[])
         }
 
       }
-      for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
+      /*for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
         std::cout<<(*itt)->value <<"("<<(*itt)->left<<")      ";
-      }    
+      }    */
     }
     std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
 
-            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<<endl;
+            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<endl;
 
           for(unsigned int l = tblock->at(i).begin; l <= tblock->at(i).end;l++) {
             std::cout<<endl;
             Line curr = lines->at(l);
             for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
-              std::cout<<(*itt)->value <<"("<<(*itt)->left<<")      ";
+              std::cout<<(*itt)->left <<"("<<(*itt)->right<<")      ";
             }     
         }
 
