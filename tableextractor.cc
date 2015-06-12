@@ -70,6 +70,9 @@ void set_block_values(TableBlock *& mlb, Line  l, int lineno) {
   mlb->leftmost = l.leftmost;
   mlb->rightmost = l.rightmost;
   mlb->max_elements = int(l.texts->size());
+  mlb->elements = new std::map<int,int>();
+  mlb->elements->insert(std::pair<int,int>(int(l.texts->size()),1));
+ // std::cout<<"increadsert_block "<<endl;
   mlb->avg_distance = 0;
 }
 
@@ -78,11 +81,51 @@ void update_block(TableBlock & mlb, Line  l) {
   mlb.leftmost = std::min(mlb.leftmost,l.leftmost);
   mlb.rightmost = std::max(mlb.rightmost,l.rightmost);
   mlb.max_elements = std::max(mlb.max_elements,int(l.texts->size()));
+  std::map<int,int>::iterator it = mlb.elements->find(int(l.texts->size()));
+  if(it == mlb.elements->end()) {
+  //    std::cout<<"incread update_block "<<endl;
+      mlb.elements->insert(std::pair<int,int>(int(l.texts->size()),1));
+  } else {
+   ///   std::cout<<it->second +1<<"increadind "<<endl;
+      int new_v = it->second +1;
+      it->second++;
+  }
+
+}
+
+int get_max_column(TableBlock & mymap) {
+  int colum = 0;
+  int value = 0;
+    for (std::map<int,int>::iterator it=mymap.elements->begin(); it!=mymap.elements->end(); ++it) {
+         // std::cout << it->first << " => " << it->second << '\n';
+          if(it->second> colum) {
+            colum = it->second;
+            value = it->first;
+          }
+    }
+    return value;
 }
 
 bool check_mergable_columns(std::vector<TextElement *> * & textElement) {
   //std::cout<<" vvv " <<textElement->size()<<" "<<textElement->at(0)->value<<" "<<textElement->at(0)->value.size()<<endl;
-  if ((textElement->size() == 2) && (textElement->at(0)->value.size() == 2)) {
+  bool mergable = false;
+  if(textElement->size() <= 3 ) {
+  for (int i =0;i<(textElement->size()-1);i++) {
+    if((textElement->at(i)->value.size() == 2) && ((i+1)<textElement->size()) && (textElement->at(i+1)->value.size() != 2) ) {
+      //std::cout<<i+1<<"  exxx "<<textElement->size()<<endl;
+      TextElement* tel =     textElement->at(i);
+      TextElement* tel1 =     textElement->at(i+1);
+      tel->value += " ";
+      tel->value += tel1->value;
+      tel->right = tel1->right;
+      textElement->erase(textElement->begin()+(i+1));
+      mergable = true;
+      return mergable;
+    }
+  }
+  return mergable;
+  }
+  /*if ((textElement->size() == 2) && (textElement->at(0)->value.size() == 2)) {
     TextElement* tel =     textElement->at(0);
     TextElement* tel1 =     textElement->at(1);
     tel->value += " ";
@@ -90,8 +133,8 @@ bool check_mergable_columns(std::vector<TextElement *> * & textElement) {
     tel->right = tel1->right;
     textElement->pop_back();
     return true;
-  }
-  return false;
+  } */
+  return mergable;
 }
 
 bool line_mergable(Line &curr_l,TableBlock& curr_bl) {
@@ -216,10 +259,16 @@ main(int argc, char* argv[])
       if (curr.texts->size() > 1) {
         if (multi_modus == true) {
           TableBlock curr_block = tblock->back();
+          if ( curr.leftmost < (curr_block.leftmost - curr.height)) {
+            multi_modus = false;
+         }
+        }
+        if (multi_modus == true) {
+          TableBlock curr_block = tblock->back();
           Line prev_line = lines->at(curr_block.end);
-          if( prev_line.texts->size() > curr.texts->size()) {
+          if( prev_line.texts->size() > curr.texts->size() && ((curr.top - prev_line.bottom )< (2*prev_line.height))) {
             bool merged = line_mergable(curr,curr_block);
-          //  cout<<merged<<" merged  "<<endl;
+            cout<<merged<<" merged  "<<endl;
             if(merged) {
               lines->erase(lines->begin()+i);
               i--;
@@ -243,7 +292,7 @@ main(int argc, char* argv[])
       } else if (curr.texts->size() == 1){
         if (multi_modus == true) {
           TableBlock curr_block = tblock->back();
-          if((curr.leftmost >= (curr_block.leftmost-3) )) {
+          if((curr.leftmost >= (curr_block.leftmost-(curr.height/2)) )) {
             bool merged_ = line_mergable(curr,curr_block);
             //cout<<merged_<<" merged_  "<<endl;
             if(merged_) {
@@ -275,7 +324,7 @@ main(int argc, char* argv[])
     std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
 
-            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<endl;
+            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
 
           for(unsigned int l = tblock->at(i).begin; l <= tblock->at(i).end;l++) {
             std::cout<<endl;
