@@ -7,6 +7,7 @@ class TableBlock {
   int leftmost;
   int rightmost;
   int max_elements;
+  std::map<int,int> * elements;
   int avg_distance;
   int page;
   int used_space;

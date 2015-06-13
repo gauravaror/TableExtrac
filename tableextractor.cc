@@ -337,14 +337,7 @@ main(int argc, char* argv[])
        }
     
     
-    /*for(std::vector<Line>::iterator itl = lines->begin(); itl != lines->end(); ++itl) {
-      std::cout<<endl;
-      sort(itl->texts->begin(),itl->texts->end(),left_comparator);
-      for(std::vector<TextElement *>::iterator itt = itl->texts->begin();itt!=itl->texts->end();++itt) {
-        std::cout<<(*itt)->value <<"("<<(*itt)->left<<")      ";
-      }
-    }*/
-
+    
   }
   catch(const xmlpp::exception& ex)
   {
