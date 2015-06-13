@@ -10,6 +10,10 @@
 #include "myparser.h"
 #include "Line.h"
 #include "TableBlock.h"
+#include "TableTree.h"
+#include "Column.h"
+
+
 std::vector<TextElement>* v;
 std::vector<Line> *lines;
 std::vector<TableBlock> *tblock;
@@ -106,6 +110,197 @@ int get_max_column(TableBlock & mymap) {
     return value;
 }
 
+
+
+
+
+bool in_boundaries(int l1, int r1, int l2, int r2) {
+  if ((l1 >= l2 && r1 <= r2) || 
+    (l1 >= l2 && l1 <= r2 && r1 > r2) ||
+    (l1 < l2 && r1 >= l2 && r1 <= r2) ||
+    (l2 >= l1 && r2 <= r1))  {
+      return true;  
+  }
+  return false;
+}
+
+
+bool insert_into_tree(TextElement t,TableTree * n,int l){
+   
+      if (n->content.compare("null") == 0) {
+    
+      if (insert_into_tree(t, &(n->nodes->at(0)),l))  {
+        return true;
+      }
+    }
+    else {
+      if (in_boundaries(t.left, t.right, n->left, n->right) || (n->content.compare("root") == 0)) {
+      int pos = 0;
+  
+      for (int i=0;i<n->nodes->size();i++) {
+      
+        TableTree next = (TableTree) n->nodes->at(i);
+        // it was t.left > next.right. which means completely on the right side
+        if (t.left > next.left) { pos++; }
+          
+        if ((in_boundaries(t.left, t.right, next.left, next.right) && next.level < l) || (next.content.compare("null") == 0)) {
+          if (insert_into_tree(t,&next,l)) {
+
+          return true;
+          }
+        }
+      } // end of for
+      
+
+      for (int j=n->level; j < l-1; j++) {
+        TableTree * dummy = new TableTree("null", t, j+1);
+        //n.nodes.insertElementAt(dummy,pos);
+        n->nodes->insert(n->nodes->begin()+pos, *dummy);
+        n = dummy;
+        pos = 0;
+      } 
+      TableTree * current = new TableTree(t,l);
+      //cout<<"insert_into_tree  "<<t.value<<"   "<<n->content<<endl;
+      n->nodes->insert(n->nodes->begin()+pos, *current);
+      return true;
+      }
+    
+    }
+    
+    return false;
+
+}
+
+  void print_tree(TableTree * n) {
+  std::cout<<" "<<n->content<<"  "<<n->level<<"  "<<n->nodes->size()<<endl;
+  for (int i=0;i<n->nodes->size();i++) {
+    //std::cout<<" "<<n->content<<"  "<<n->level<<"  "<<n->nodes->size()<<endl;
+     print_tree( &(n->nodes->at(i)));
+     
+    }
+    //cout<<endl;
+  }
+
+  void actualize_column_values(Column * c, TextElement * t) {
+     if (c->left ==  -1) {
+       c->left = t->left;
+    }
+    else {
+     std::min(c->left,t->left);
+     } 
+   
+     c->right = std::max(c->right,t->left + t->width);
+   }
+   
+    void actualize_column_values_with_another_column(Column * c1, Column * c2) {
+     c1->left = std::min(c1->left,c2->left);
+     c1->right = std::max(c1->right,c2->right);
+   }
+
+
+
+   int convert_to_table(TableTree  * n, Column * c, std::vector<Column *> * v, int l) {
+
+     if (c == NULL) {
+   // root node
+      int spanning =0;
+      for (int i=0; i < n->nodes->size(); i++) {
+      Column *new_column = new Column();
+      v->push_back(new_column);
+      spanning += convert_to_table(&(n->nodes->at(i)), new_column, v, l);
+    }
+    return spanning;
+   }
+   else {
+   // not root node
+      int pos = 0;
+      if (n->content.compare("null") != 0) {
+        c->cells->push_back(n->text_element);   
+      pos = c->cells->size();
+      if (n->text_element.colspan == 1) {
+          actualize_column_values(c, &(n->text_element));
+      }
+    }
+    else {
+      TextElement *t = new TextElement();
+      c->cells->push_back(*t);
+      pos = c->cells->size();
+    }
+
+    if (n->nodes->size() >= 1) {
+      int spanning = 0;
+      
+      spanning += convert_to_table( &(n->nodes->at(0)), c, v, l);
+
+     /* for (int i=1; i < n->nodes->size(); i++) {
+        Column * new_column = new Column();
+      new_column->cells->insert(new_column->cells->end(),c->cells->begin(),c->cells->end());
+      v->push_back(new_column);
+      spanning += convert_to_table( &(n->nodes->at(i)), new_column, v, l);
+      }*/
+      
+      TextElement t =  c->cells->at(pos-1);
+      t.colspan = spanning;
+      return spanning;
+    }
+    else {
+    // no children means that we are at the leaf of a branch
+        while (c->cells->size() < l) {
+        TextElement* t = new TextElement();
+        c->cells->push_back(*t);
+      }
+      return 1;
+    }
+   }
+    
+   }
+
+void FindTables() {
+  for ( int tb = 0; tb < tblock->size(); tb++) {
+    TableBlock curr_table_block =  tblock->at(tb);
+    int lines_before = 0;
+    int line_count = 0;
+    std::cout<<"<b>Table Block "<<tb<<"</b><br>"<<endl;
+    if (curr_table_block.end - curr_table_block.begin >= 2) {
+     // if (curr_table_block.elements->size() == 1) {
+        int b = curr_table_block.begin;
+        TableTree * root = new TableTree("root",-1);
+        while (b <= curr_table_block.end) {
+             Line l = (Line) lines->at(b);
+       
+           for (int j=0;j<l.texts->size();j++) {
+            TextElement * t =  l.texts->at(j);
+             // std::cout<<t->value<<"  cddd "<<endl;
+              insert_into_tree(*t,root,lines_before);
+           }  
+
+          
+             b++;            
+             lines_before++;
+        } 
+       // print_tree(root);
+        std::vector<Column *> * v = new std::vector<Column *>();
+        convert_to_table(root, NULL, v, lines_before);
+        std::cout<<"<table border=2>"<<endl;
+        for (int li = 0;li<lines_before;li++) {
+          if(li!=0) {
+            std::cout<<"</tr>"<<endl;
+          } 
+          std::cout<<"<tr>"<<endl;
+         for(int k =0;k<v->size();k++) {
+            std::cout<<"<td>";
+            if((v->at(k)->cells->at(li).value) != "null")
+              std::cout<<(v->at(k)->cells->at(li).value);
+            std::cout<<"</td>";
+          }
+          
+        }
+        std::cout<<"</table>"<<endl;
+    //  }
+    }
+  }
+}
+
 bool check_mergable_columns(std::vector<TextElement *> * & textElement) {
   //std::cout<<" vvv " <<textElement->size()<<" "<<textElement->at(0)->value<<" "<<textElement->at(0)->value.size()<<endl;
   bool mergable = false;
@@ -177,7 +372,7 @@ bool line_mergable(Line &curr_l,TableBlock& curr_bl) {
       if(prev_line.texts->size() - 1 != curr_itr_blk) {
         TextElement* test_element_next = prev_line.texts->at(curr_itr_blk+1);  
         if( (mergable_element->left > (test_element_curr->left -(test_element_curr->height/2))) && (mergable_element->right < (test_element_next->left-(test_element_next->height/2)))) {
-          test_element_curr->value += "  ";
+          test_element_curr->value += "  <br> ";
           test_element_curr->value += mergable_element->value;
           test_element_curr->left = std::min(test_element_curr->left,mergable_element->left);
           test_element_curr->right = std::max(test_element_curr->right,mergable_element->right);
@@ -186,7 +381,7 @@ bool line_mergable(Line &curr_l,TableBlock& curr_bl) {
         }
       } else {
         if( (mergable_element->left > (test_element_curr->left -(test_element_curr->height/2)))) {
-          test_element_curr->value += "  ";
+          test_element_curr->value += "  <br> ";
           test_element_curr->value += mergable_element->value;
           test_element_curr->left = std::min(test_element_curr->left,mergable_element->left);
           test_element_curr->right = std::max(test_element_curr->right,mergable_element->right);
@@ -268,7 +463,7 @@ main(int argc, char* argv[])
           Line prev_line = lines->at(curr_block.end);
           if( prev_line.texts->size() > curr.texts->size() && ((curr.top - prev_line.bottom )< (2*prev_line.height))) {
             bool merged = line_mergable(curr,curr_block);
-            cout<<merged<<" merged  "<<endl;
+           // cout<<merged<<" merged  "<<endl;
             if(merged) {
               lines->erase(lines->begin()+i);
               i--;
@@ -321,22 +516,22 @@ main(int argc, char* argv[])
         std::cout<<(*itt)->value <<"("<<(*itt)->left<<")      ";
       }  */  
     }
-    std::cout <<tblock->size()<<" block size ";
+    //std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
 
-            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
+          //  cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
 
           for(unsigned int l = tblock->at(i).begin; l <= tblock->at(i).end;l++) {
             std::cout<<endl;
             Line curr = lines->at(l);
             for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
-              std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
+              //std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
             }     
         }
 
        }
     
-    
+    FindTables();
     
   }
   catch(const xmlpp::exception& ex)
