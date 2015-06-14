@@ -160,7 +160,7 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
         pos = 0;
       } 
       TableTree * current = new TableTree(t,l);
-      //cout<<"insert_into_tree  "<<t.value<<"   "<<n->content<<endl;
+    //  cout<<"insert_into_tree  "<<t.value<<"   "<<n->content<<endl;
       n->nodes->insert(n->nodes->begin()+pos, *current);
       return true;
       }
@@ -229,15 +229,20 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
 
     if (n->nodes->size() >= 1) {
       int spanning = 0;
-      
+      Column * store_column = new Column();
+      store_column->cells->insert(store_column->cells->end(),c->cells->begin(),c->cells->end());
+      for(int itr =0;itr<store_column->cells->size();itr++) {
+        store_column->cells->at(itr).value = "null";
+      }
       spanning += convert_to_table( &(n->nodes->at(0)), c, v, l);
 
-     /* for (int i=1; i < n->nodes->size(); i++) {
+      for (int i=1; i < n->nodes->size(); i++) {
         Column * new_column = new Column();
-      new_column->cells->insert(new_column->cells->end(),c->cells->begin(),c->cells->end());
+        //std::cout<<spanning<<" ds dsss <br>"<<endl;
+      new_column->cells->insert(new_column->cells->end(),store_column->cells->begin(),store_column->cells->begin()+store_column->cells->size());
       v->push_back(new_column);
       spanning += convert_to_table( &(n->nodes->at(i)), new_column, v, l);
-      }*/
+      }
       
       TextElement t =  c->cells->at(pos-1);
       t.colspan = spanning;
@@ -278,7 +283,7 @@ void FindTables() {
              b++;            
              lines_before++;
         } 
-       // print_tree(root);
+        //print_tree(root);
         std::vector<Column *> * v = new std::vector<Column *>();
         convert_to_table(root, NULL, v, lines_before);
         std::cout<<"<table border=2>"<<endl;
@@ -525,7 +530,7 @@ main(int argc, char* argv[])
             std::cout<<endl;
             Line curr = lines->at(l);
             for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
-              //std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
+            //  std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
             }     
         }
 
