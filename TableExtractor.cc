@@ -9,14 +9,13 @@
 #include <vector>
 #include "myparser.h"
 #include "Line.h"
+#include <string>
 #include "TableBlock.h"
 #include "TableTree.h"
+#include "TableExtractor.h"
 #include "Column.h"
 
 
-std::vector<TextElement>* v;
-std::vector<Line> *lines;
-std::vector<TableBlock> *tblock;
 
 bool top_compare(const TextElement lhs, const TextElement rhs) {
   return lhs.top < rhs.top;
@@ -182,7 +181,7 @@ void merge_columns( vector<Column *>  * columns){
         
         
         if (merge == true) {
-          std::cout<<"Merging columns"<<endl;
+         // std::cout<<"Merging columns"<<endl;
          columns->insert(columns->begin()+k, nc);
          columns->erase(columns->begin()+(k+1));
          columns->erase(columns->begin()+(k+1));
@@ -324,12 +323,14 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
     
    }
 
-void FindTables() {
+string TableExtractor::FindTables() {
+  string table_output;
+  //std::cout<<" DD "<<tblock->size()<<endl;
   for ( int tb = 0; tb < tblock->size(); tb++) {
     TableBlock curr_table_block =  tblock->at(tb);
     int lines_before = 0;
     int line_count = 0;
-    std::cout<<"<b>Table Block "<<tb<<"</b><br>"<<endl;
+    table_output += "<b>Table Block "+ std::to_string(tb) +"</b><br>";
     if (curr_table_block.end - curr_table_block.begin >= 1) {
      // if (curr_table_block.elements->size() == 1) {
         int b = curr_table_block.begin;
@@ -352,24 +353,25 @@ void FindTables() {
         
         convert_to_table(root, NULL, v, lines_before);
         merge_columns(v);
-        std::cout<<"<table border=2>"<<endl;
+        table_output +="<table border=2>";
         for (int li = 0;li<lines_before;li++) {
           if(li!=0) {
-            std::cout<<"</tr>"<<endl;
+            table_output +="</tr>";
           } 
-          std::cout<<"<tr>"<<endl;
+          table_output +="<tr>";
          for(int k =0;k<v->size();k++) {
-            std::cout<<"<td>";
+            table_output +="<td>";
             if((v->at(k)->cells->at(li).value) != "null")
-              std::cout<<(v->at(k)->cells->at(li).value);
-            std::cout<<"</td>";
+              table_output +=(v->at(k)->cells->at(li).value);
+            table_output +="</td>";
           }
           
         }
-        std::cout<<"</table>"<<endl;
+        table_output +="</table>";
     //  }
     }
   }
+  return table_output;
 }
 
 bool check_mergable_columns(std::vector<TextElement *> * & textElement) {
@@ -403,7 +405,7 @@ bool check_mergable_columns(std::vector<TextElement *> * & textElement) {
   return mergable;
 }
 
-bool line_mergable(Line &curr_l,TableBlock& curr_bl) {
+bool TableExtractor::line_mergable(Line &curr_l,TableBlock& curr_bl) {
   bool mergable = true;
   Line prev_line = lines->at(curr_bl.end);
 
@@ -467,19 +469,12 @@ bool line_mergable(Line &curr_l,TableBlock& curr_bl) {
   return mergable;
 }
 
-int
-main(int argc, char* argv[])
+std::string TableExtractor::run_extractor(std::string fname, std::vector<TextElement> * textEle)
 {
-  std::string filepath;
-  if(argc > 1 )
-    filepath = argv[1]; //Allow the user to specify a different XML file to parse.
-  else
-    filepath = "example.xml";
-    
-  // Parse the entire document in one go:
+  
   try
   {
-    // Elements to store Texts Lines and Table Blocks.
+    /*// Elements to store Texts Lines and Table Blocks.
     v =  new std::vector<TextElement>();
     lines =  new std::vector<Line>();
     tblock =  new std::vector<TableBlock>;
@@ -488,7 +483,9 @@ main(int argc, char* argv[])
     MySaxParser * parser = new MySaxParser(v);
     parser->set_substitute_entities(true); //
     parser->parse_file(filepath);
-
+*/  
+    v = textEle;
+    //std::cout<<"  elel "<<v->size();
     //Sorting the Text Element in order of top value
     sort(v->begin(),v->end(),top_compare);
     std::vector<TextElement>::iterator it = v->begin();
@@ -501,6 +498,7 @@ main(int argc, char* argv[])
     ++it;
    // std::cout <<curr_line->top<<" curr_line ";
     for(; it != v->end(); ++it) {
+      //std::cout<<"*it "<<*it<<endl;
       if (same_line(curr_line,&(*it)))  {
         add_element_line(curr_line,&(*it));
        // cout<<" leftmost k"<<curr_line->leftmost<<endl;
@@ -590,7 +588,7 @@ main(int argc, char* argv[])
     //std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
 
-            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
+            //cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
 
           for(unsigned int l = tblock->at(i).begin; l <= tblock->at(i).end;l++) {
             //std::cout<<endl;
@@ -602,16 +600,11 @@ main(int argc, char* argv[])
 
        }
     
-    FindTables();
+    return FindTables();
     
   }
   catch(const xmlpp::exception& ex)
   {
     std::cout << "libxml++ exception: " << ex.what() << std::endl;
   }
-
- 
-
-
-  return 0;
 }
