@@ -110,8 +110,87 @@ int get_max_column(TableBlock & mymap) {
     return value;
 }
 
+  void actualize_column_values(Column * c, TextElement * t) {
+     if (c->left ==  -1) {
+       c->left = t->left;
+    }
+    else {
+     std::min(c->left,t->left);
+     } 
+   
+     c->right = std::max(c->right,t->left + t->width);
+   }
+   
+    void actualize_column_values_with_another_column(Column * c1, Column * c2) {
+     c1->left = std::min(c1->left,c2->left);
+     c1->right = std::max(c1->right,c2->right);
+   }
 
 
+void merge_columns( vector<Column *>  * columns){
+      for (int k=0; k< columns->size() -1; k++) {
+        Column *c1 = columns->at(k);
+        Column *c2 = columns->at(k+1);
+        
+        Column * nc =  new Column(c1->left,c1->right);
+        nc->cells->insert(nc->cells->end(),c1->cells->begin(),c1->cells->end());
+        if (c1->left <= c2->left && c1->right >= c2->left) {
+          // merge columns because they overlap
+        bool merge = true;
+        for (int j=0; j<c1->cells->size();j++) {
+      
+          TextElement t1 =  c1->cells->at(j);
+          TextElement t2 =  c2->cells->at(j);
+          TextElement nt =  nc->cells->at(j);
+      
+          
+          if ((t1.value.compare("null") == 0) || (t2.value.compare("null") == 0) ) {  
+            string new_value = "";
+          if (t1.value.compare("null") != 0) {
+            nt.value = t1.value;
+            if (t1.colspan > 1) {
+              nt.colspan--;
+            }
+            else {
+             actualize_column_values(nc, &t1);
+            }
+            nc->cells->insert(nc->cells->begin()+j,nt);
+            nc->cells->erase(nc->cells->begin()+(j+1));
+
+
+          }
+          else {
+            nt.value = t2.value;
+            if (t2.colspan > 1) {
+              nt.colspan--;
+            }
+            else {
+              actualize_column_values(nc, &t2);
+            }
+            nc->cells->insert(nc->cells->begin()+j,nt);
+            nc->cells->erase(nc->cells->begin()+(j+1));
+
+          }
+         // std::cout<<t1.value<<" fdsd "<<t2.value<<"  "<<nt.value<<endl;
+
+          }
+          else {
+             merge = false;
+           break;
+          }
+         }
+        
+        
+        if (merge == true) {
+          std::cout<<"Merging columns"<<endl;
+         columns->insert(columns->begin()+k, nc);
+         columns->erase(columns->begin()+(k+1));
+         columns->erase(columns->begin()+(k+1));
+        }
+        }
+       }
+
+}
 
 
 bool in_boundaries(int l1, int r1, int l2, int r2) {
@@ -181,21 +260,6 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
     //cout<<endl;
   }
 
-  void actualize_column_values(Column * c, TextElement * t) {
-     if (c->left ==  -1) {
-       c->left = t->left;
-    }
-    else {
-     std::min(c->left,t->left);
-     } 
-   
-     c->right = std::max(c->right,t->left + t->width);
-   }
-   
-    void actualize_column_values_with_another_column(Column * c1, Column * c2) {
-     c1->left = std::min(c1->left,c2->left);
-     c1->right = std::max(c1->right,c2->right);
-   }
 
 
 
@@ -229,7 +293,7 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
 
     if (n->nodes->size() >= 1) {
       int spanning = 0;
-      Column * store_column = new Column();
+      Column * store_column = new Column(c->left,c->right);
       store_column->cells->insert(store_column->cells->end(),c->cells->begin(),c->cells->end());
       for(int itr =0;itr<store_column->cells->size();itr++) {
         store_column->cells->at(itr).value = "null";
@@ -237,7 +301,7 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
       spanning += convert_to_table( &(n->nodes->at(0)), c, v, l);
 
       for (int i=1; i < n->nodes->size(); i++) {
-        Column * new_column = new Column();
+        Column * new_column = new Column(store_column->left,store_column->right);
         //std::cout<<spanning<<" ds dsss <br>"<<endl;
       new_column->cells->insert(new_column->cells->end(),store_column->cells->begin(),store_column->cells->begin()+store_column->cells->size());
       v->push_back(new_column);
@@ -266,7 +330,7 @@ void FindTables() {
     int lines_before = 0;
     int line_count = 0;
     std::cout<<"<b>Table Block "<<tb<<"</b><br>"<<endl;
-    if (curr_table_block.end - curr_table_block.begin >= 2) {
+    if (curr_table_block.end - curr_table_block.begin >= 1) {
      // if (curr_table_block.elements->size() == 1) {
         int b = curr_table_block.begin;
         TableTree * root = new TableTree("root",-1);
@@ -285,7 +349,9 @@ void FindTables() {
         } 
         //print_tree(root);
         std::vector<Column *> * v = new std::vector<Column *>();
+        
         convert_to_table(root, NULL, v, lines_before);
+        merge_columns(v);
         std::cout<<"<table border=2>"<<endl;
         for (int li = 0;li<lines_before;li++) {
           if(li!=0) {
@@ -524,13 +590,13 @@ main(int argc, char* argv[])
     //std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
 
-          //  cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
+            cout<<endl<<"Block "<<i+1<<"  "<<tblock->at(i).begin<< "   "<<tblock->at(i).end<< "   "<<tblock->at(i).leftmost<< "   "<<tblock->at(i).rightmost<<"  "<< tblock->at(i).max_elements<<"  max "<<get_max_column(tblock->at(i))<<endl;
 
           for(unsigned int l = tblock->at(i).begin; l <= tblock->at(i).end;l++) {
-            std::cout<<endl;
+            //std::cout<<endl;
             Line curr = lines->at(l);
             for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
-            //  std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
+              //std::cout<<(*itt)->value<<"  "<<(*itt)->left <<"("<<(*itt)->right<<")      ";
             }     
         }
 
