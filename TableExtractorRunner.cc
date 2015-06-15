@@ -17,7 +17,7 @@ using namespace std;
 int main(int argc, char** argv) {
 
 	string filename = argv[1];
-	cout<<filename<<endl;
+	cout<<"<br><br><b>"<<filename<<"</b><br><br>";
 	TableExtractor * tb = new TableExtractor(filename);
 	std::vector<TextElement> *va =  new std::vector<TextElement>();
 

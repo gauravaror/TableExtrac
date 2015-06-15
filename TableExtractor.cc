@@ -323,14 +323,44 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
     
    }
 
+void TableExtractor::append_lines(string & output,int begin,int end) {
+  output += "<p>";
+  for(unsigned int l = begin; l < end;l++) {
+            output +="<br>";
+            Line curr = lines->at(l);
+            if(l > begin ) {
+              Line line_prev = lines->at(l-1);
+         //     output += "<br> coordinates " +std::to_string(curr.top) +"  " +std::to_string(line_prev.bottom);
+              if(curr.top - line_prev.bottom > (curr.height/2)) {
+                output += "</p> <p>";
+              }
+            }
+            for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
+              output+=(*itt)->value + "  ";
+            }     
+        }
+        output += "</p>";
+}
+
 string TableExtractor::FindTables() {
-  string table_output;
+  string table_output= "";
+  TableBlock curr_table_block;
   //std::cout<<" DD "<<tblock->size()<<endl;
-  for ( int tb = 0; tb < tblock->size(); tb++) {
-    TableBlock curr_table_block =  tblock->at(tb);
+  int tb=0;
+  if(tblock->size() > 0) {
+    curr_table_block =  tblock->at(tb);
+    append_lines(table_output,0,curr_table_block.begin);
+  } else if( tblock->size() == 0 ) {
+    append_lines(table_output,0,lines->size());
+    return table_output;
+  } else {
+    return "";
+  }
+  
+  for ( ; tb < tblock->size(); tb++) {
     int lines_before = 0;
     int line_count = 0;
-    table_output += "<b>Table Block "+ std::to_string(tb) +"</b><br>";
+  //  table_output += "<b>Table Block "+ std::to_string(tb) +"</b><br>";
     if (curr_table_block.end - curr_table_block.begin >= 1) {
      // if (curr_table_block.elements->size() == 1) {
         int b = curr_table_block.begin;
@@ -369,8 +399,16 @@ string TableExtractor::FindTables() {
         }
         table_output +="</table>";
     //  }
+    } else {
+      append_lines(table_output,curr_table_block.begin,curr_table_block.end+1);
+    }
+    if(tblock->size() > tb+1) {
+      TableBlock old_table_block = curr_table_block;
+      curr_table_block =  tblock->at(tb+1);
+      append_lines(table_output,old_table_block.end+1,curr_table_block.begin);
     }
   }
+  append_lines(table_output,(curr_table_block.end+1),lines->size());
   return table_output;
 }
 

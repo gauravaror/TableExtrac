@@ -7,6 +7,7 @@
   std::string run_extractor(std::string fname, std::vector<TextElement> * textEle);
   std::string FindTables();
   bool line_mergable(Line&, TableBlock&);
+  void append_lines(string & output,int begin,int end);
 
    TableExtractor(std::vector<TextElement> * textEle) {
     v = textEle;
