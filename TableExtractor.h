@@ -19,9 +19,9 @@
     tblock =  new std::vector<TableBlock>;
 
     //Invoking parser to get text elements from hocr file.
-    MySaxParser * parser = new MySaxParser(v);
-    parser->set_substitute_entities(true); //
-    parser->parse_file(fname);
+  //  MySaxParser * parser = new MySaxParser(v);
+    //parser->set_substitute_entities(true); //
+    //parser->parse_file(fname);
 
   }
 

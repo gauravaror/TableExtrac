@@ -250,7 +250,7 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
 }
 
   void print_tree(TableTree * n) {
-  std::cout<<" "<<n->content<<"  "<<n->level<<"  "<<n->nodes->size()<<endl;
+ // std::cout<<" "<<n->content<<"  "<<n->level<<"  "<<n->nodes->size()<<endl;
   for (int i=0;i<n->nodes->size();i++) {
     //std::cout<<" "<<n->content<<"  "<<n->level<<"  "<<n->nodes->size()<<endl;
      print_tree( &(n->nodes->at(i)));
@@ -324,7 +324,9 @@ bool insert_into_tree(TextElement t,TableTree * n,int l){
    }
 
 void TableExtractor::append_lines(string & output,int begin,int end) {
-  output += "<p>";
+  if(begin < lines->size()) {
+  Line curr1 = lines->at(begin);
+  output += "<p >";
   for(unsigned int l = begin; l < end;l++) {
             output +="<br>";
             Line curr = lines->at(l);
@@ -332,7 +334,7 @@ void TableExtractor::append_lines(string & output,int begin,int end) {
               Line line_prev = lines->at(l-1);
          //     output += "<br> coordinates " +std::to_string(curr.top) +"  " +std::to_string(line_prev.bottom);
               if(curr.top - line_prev.bottom > (curr.height/2)) {
-                output += "</p> <p>";
+                output += "</p> <p >";
               }
             }
             for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
@@ -340,6 +342,7 @@ void TableExtractor::append_lines(string & output,int begin,int end) {
             }     
         }
         output += "</p>";
+      }
 }
 
 string TableExtractor::FindTables() {
@@ -383,6 +386,8 @@ string TableExtractor::FindTables() {
         
         convert_to_table(root, NULL, v, lines_before);
         merge_columns(v);
+        Line curr = lines->at(curr_table_block.begin);
+        //table_output+="<p style=\"position:absolute;left:" + std::to_string(curr.leftmost)+ ";top:"+std::to_string(curr.top)+";\">";
         table_output +="<table border=2>";
         for (int li = 0;li<lines_before;li++) {
           if(li!=0) {
@@ -398,6 +403,7 @@ string TableExtractor::FindTables() {
           
         }
         table_output +="</table>";
+       // table_output+="</p>";
     //  }
     } else {
       append_lines(table_output,curr_table_block.begin,curr_table_block.end+1);
@@ -521,9 +527,12 @@ std::string TableExtractor::run_extractor(std::string fname, std::vector<TextEle
     MySaxParser * parser = new MySaxParser(v);
     parser->set_substitute_entities(true); //
     parser->parse_file(filepath);
-*/  
+*/	
+    //std::cout<<"  elel "<<textEle->size();
+	  if (textEle->size() == 0) {
+	    return "";
+	  } 
     v = textEle;
-    //std::cout<<"  elel "<<v->size();
     //Sorting the Text Element in order of top value
     sort(v->begin(),v->end(),top_compare);
     std::vector<TextElement>::iterator it = v->begin();
@@ -569,6 +578,7 @@ std::string TableExtractor::run_extractor(std::string fname, std::vector<TextEle
           TableBlock curr_block = tblock->back();
           Line prev_line = lines->at(curr_block.end);
           if( prev_line.texts->size() > curr.texts->size() && ((curr.top - prev_line.bottom )< (2*prev_line.height))) {
+           // cout<<" Merginh "<< curr.top<< "    work "<<curr_block.end<<" sizze "<<lines->size()<<endl;
             bool merged = line_mergable(curr,curr_block);
            // cout<<merged<<" merged  "<<endl;
             if(merged) {
@@ -619,9 +629,9 @@ std::string TableExtractor::run_extractor(std::string fname, std::vector<TextEle
         }
 
       }
-     /* for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
+      /*for(std::vector<TextElement *>::iterator itt = curr.texts->begin();itt!=curr.texts->end();++itt) {
         std::cout<<(*itt)->value <<"("<<(*itt)->left<<")      ";
-      }  */  
+      } */   
     }
     //std::cout <<tblock->size()<<" block size ";
     for(unsigned int i = 0; i < tblock->size();i++) {
